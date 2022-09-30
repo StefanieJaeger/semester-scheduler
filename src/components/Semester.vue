@@ -31,7 +31,7 @@
     </datalist>
   </div>
   <div class="column">
-    <p>Total ECTS: {{ getTotalEcts }}</p>
+    <p>Total ECTS: {{ ectsTotal }}</p>
   </div>
 </div>
 </template>
@@ -60,42 +60,41 @@ export default {
       type: Array,
     },
   },
-  computed: {
-    getTotalEcts() {
-      return this.countTotalEcts();
-    },
-  },
   data() {
     return {
+      ectsTotal: 0,
       additionalModule: null,
       isAddingNewModule: false,
     };
   },
   methods: {
-    countTotalEcts() {
-      return this.modules.reduce((previousValue, module) => previousValue + module.ects, 0);
+    updateEctsTotal() {
+      this.ectsTotal = this.modules.reduce((a, b) => a + (b.ects || 0), 0);
     },
     addModule() {
       const blockingSemesterNumber = this.$parent.getPlannedSemesterForModule(
         this.additionalModule,
       );
       if (blockingSemesterNumber) {
-        const text = `Module ${this.additionalModule} is already in semester ${blockingSemesterNumber}`;
-        // eslint-disable-next-line no-console
-        console.warn(text);
-        this.$parent.showErrorMsg(text);
-        this.additionalModule = null;
-        this.isAddingNewModule = false;
+        // TODO: display error message
+        console.warn(`Module ${this.additionalModule} is already in semester ${blockingSemesterNumber}`);
         return;
       }
-      this.$parent.addModule(this.number, this.additionalModule);
+      const module = this.allModules.find((item) => item.name === this.additionalModule);
+      // eslint-disable-next-line vue/no-mutating-props
+      this.modules.push(module);
       this.additionalModule = null;
       this.isAddingNewModule = false;
+      this.updateEctsTotal();
+      this.$parent.updateUrlFragment();
     },
     removeModule(moduleName) {
       const moduleToDelete = this.modules.filter((item) => item.name === moduleName);
       const index = this.modules.indexOf(moduleToDelete[0]);
-      this.$parent.removeModule(this.number, index);
+      // eslint-disable-next-line vue/no-mutating-props
+      this.modules.splice(index, 1);
+      this.updateEctsTotal();
+      this.$parent.updateUrlFragment();
     },
     selectModuleClass() {
       this.modules.forEach((module) => {
@@ -106,6 +105,7 @@ export default {
     },
   },
   mounted() {
+    this.updateEctsTotal();
     this.selectModuleClass();
   },
 };
